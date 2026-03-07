@@ -1,0 +1,9 @@
+{
+  "/(dashboard)/waiter/page": "app/(dashboard)/waiter/page.js",
+  "/(dashboard)/waiter/orders/page": "app/(dashboard)/waiter/orders/page.js",
+  "/(dashboard)/cashier/page": "app/(dashboard)/cashier/page.js",
+  "/(dashboard)/cashier/settings/page": "app/(dashboard)/cashier/settings/page.js",
+  "/(dashboard)/manager/page": "app/(dashboard)/manager/page.js",
+  "/(dashboard)/waiter/orders/[orderId]/page": "app/(dashboard)/waiter/orders/[orderId]/page.js",
+  "/(dashboard)/waiter/table/[tableId]/page": "app/(dashboard)/waiter/table/[tableId]/page.js"
+}

@@ -1,0 +1,1 @@
+export type OrderStatus = "NEW" | "COOKING" | "READY" | "SERVED" | "PAID"; export type OrderItem = { id: string; name: string; quantity: number }; export type Order = { id: string; tableId: string; status: OrderStatus; items: OrderItem[] };
