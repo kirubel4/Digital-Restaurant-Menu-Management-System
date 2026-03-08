@@ -38,103 +38,425 @@ type DashboardState = {
   setMenuAvailability: (id: string, availability: MenuAvailability) => void;
   bulkSetMenuAvailability: (ids: string[], availability: MenuAvailability) => void;
   setMenuLowStock: (id: string, lowStock: boolean) => void;
-  createOrder: (tableNumber: number, waiterId: string, items: OrderItem[], waiterNote?: string) => void;
-  addItemsToOrder: (orderId: string, items: OrderItem[], waiterNote?: string) => void;
-  updateOrderStatus: (orderId: string, status: OrderStatus, rejectNote?: string) => void;
+  createOrder: (
+    tableNumber: number,
+    waiterId: string,
+    items: OrderItem[],
+    waiterNote?: string,
+  ) => void;
+  addItemsToOrder: (
+    orderId: string,
+    items: OrderItem[],
+    waiterNote?: string,
+  ) => void;
+  updateOrderStatus: (
+    orderId: string,
+    status: OrderStatus,
+    rejectNote?: string,
+  ) => void;
   finalizePayment: (orderId: string, tip: number) => void;
+  requestPayment: (
+    orderId: string,
+    options?: { items?: OrderItem[]; label?: string },
+  ) => void;
   markNotificationsRead: (role: UserRole) => void;
   resetTicketCounter: () => void;
   updateChefSettings: (payload: Partial<ChefSettings>) => void;
 };
 
 const nowIso = () => new Date().toISOString();
-const makeId = (prefix: string) => `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
+const makeId = (prefix: string) =>
+  `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 
 const seedStaff: StaffMember[] = [
-  { id: "manager_1", name: "Ava Manager", email: "manager@resto.com", role: "manager", active: true },
-  { id: "waiter_1", name: "Leo Waiter", email: "waiter@resto.com", role: "waiter", active: true },
-  { id: "chef_1", name: "Mina Chef", email: "chef@resto.com", role: "chef", active: true },
-  { id: "cashier_1", name: "Noah Cashier", email: "cashier@resto.com", role: "cashier", active: true },
+  {
+    id: "manager_1",
+    name: "Ava Manager",
+    email: "manager@resto.com",
+    role: "manager",
+    active: true,
+  },
+  {
+    id: "waiter_1",
+    name: "Leo Waiter",
+    email: "waiter@resto.com",
+    role: "waiter",
+    active: true,
+  },
+  {
+    id: "chef_1",
+    name: "Mina Chef",
+    email: "chef@resto.com",
+    role: "chef",
+    active: true,
+  },
+  {
+    id: "cashier_1",
+    name: "Noah Cashier",
+    email: "cashier@resto.com",
+    role: "cashier",
+    active: true,
+  },
 ];
 
 const seedMenu: MenuItem[] = [
+  // Starters
   {
     id: "m1",
     name: "Bruschetta",
+    description: "Toasted bread topped with fresh tomatoes, garlic, and basil",
     category: "starter",
     price: 8,
     availability: "available",
-    lowStock: false,
-    image: "B",
     active: true,
+    image: "/images/bruschetta.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "Add Mozzarella", price: 2 },
+      { name: "Gluten-Free Bread", price: 1.5 },
+    ],
   },
   {
     id: "m2",
     name: "Caesar Salad",
+    description:
+      "Crisp romaine lettuce with caesar dressing, croutons, and parmesan",
     category: "starter",
     price: 9,
     availability: "available",
-    lowStock: true,
-    image: "C",
     active: true,
+    image: "/images/caesar-salad.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "Add Grilled Chicken", price: 4 },
+      { name: "Add Shrimp", price: 6 },
+      { name: "Anchovies", price: 1 },
+    ],
   },
+
+  // Main Dishes
   {
     id: "m3",
     name: "Grilled Salmon",
+    description:
+      "Fresh Atlantic salmon with lemon butter sauce and seasonal vegetables",
     category: "main dish",
     price: 22,
     availability: "available",
-    lowStock: false,
-    image: "G",
     active: true,
+    image: "/images/grilled-salmon.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "Extra Sauce", price: 1 },
+      { name: "Substitute Vegetables for Fries", price: 0 },
+    ],
   },
   {
     id: "m4",
     name: "Ribeye Steak",
+    description: "12oz prime ribeye, grilled to perfection with herb butter",
     category: "main dish",
     price: 30,
     availability: "out_of_stock",
-    lowStock: false,
-    image: "R",
     active: true,
+    image: "/images/ribeye-steak.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "Rare", price: 0 },
+      { name: "Medium Rare", price: 0 },
+      { name: "Medium", price: 0 },
+      { name: "Well Done", price: 0 },
+      { name: "Add Grilled Mushrooms", price: 3 },
+      { name: "Add Onion Rings", price: 4 },
+    ],
   },
+
+  // Desserts
   {
     id: "m5",
     name: "Tiramisu",
+    description: "Classic Italian dessert with mascarpone and espresso",
     category: "dessert",
     price: 7,
     availability: "available",
-    lowStock: false,
-    image: "T",
     active: true,
+    image: "/images/tiramisu.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "Add Chocolate Shavings", price: 1 },
+      { name: "Extra Dusting of Cocoa", price: 0.5 },
+    ],
   },
+
+  // Drinks
   {
     id: "m6",
     name: "Lemonade",
+    description: "Freshly squeezed lemons with a hint of mint",
     category: "drink",
     price: 4,
     availability: "available",
-    lowStock: true,
-    image: "L",
     active: true,
+    image: "/images/lemonade.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "Add Strawberry", price: 1 },
+      { name: "Add Raspberry", price: 1 },
+      { name: "Less Sugar", price: 0 },
+    ],
   },
   {
     id: "m7",
     name: "Sparkling Water",
+    description: "Imported Italian sparkling mineral water",
     category: "drink",
     price: 3,
     availability: "available",
-    lowStock: false,
-    image: "S",
     active: false,
+    image: "/images/sparkling-water.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "With Lemon", price: 0 },
+      { name: "With Lime", price: 0 },
+    ],
+  },
+
+  // Additional items to showcase features
+  {
+    id: "m8",
+    name: "Spicy Chicken Wings",
+    description: "Crispy wings tossed in our signature spicy buffalo sauce",
+    category: "starter",
+    price: 12,
+    availability: "available",
+    active: true,
+    image: "/images/spicy-wings.jpg",
+    spicy: true,
+    modifiers: [
+      { name: "Extra Spicy", price: 1 },
+      { name: "Blue Cheese Dip", price: 1.5 },
+      { name: "Celery Sticks", price: 1 },
+    ],
+  },
+  {
+    id: "m9",
+    name: "Vegetarian Pizza",
+    description: "Fresh vegetables, mushrooms, and olives on tomato sauce",
+    category: "main dish",
+    price: 18,
+    availability: "available",
+    active: true,
+    image: "/images/veggie-pizza.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "Gluten-Free Crust", price: 3 },
+      { name: "Extra Cheese", price: 2 },
+      { name: "Add Pepperoni", price: 3 },
+    ],
+  },
+  {
+    id: "m10",
+    name: "Chocolate Lava Cake",
+    description:
+      "Warm chocolate cake with a molten center, served with vanilla ice cream",
+    category: "dessert",
+    price: 9,
+    availability: "available",
+    active: true,
+    image: "/images/lava-cake.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "Extra Ice Cream", price: 2 },
+      { name: "Add Caramel Sauce", price: 1 },
+    ],
+  },
+  {
+    id: "m11",
+    name: "Craft Beer",
+    description: "Rotating selection of local craft beers",
+    category: "drink",
+    price: 7,
+    availability: "available",
+    active: true,
+    image: "/images/craft-beer.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "IPA", price: 0 },
+      { name: "Stout", price: 0 },
+      { name: "Lager", price: 0 },
+    ],
+  },
+  {
+    id: "m12",
+    name: "Seafood Pasta",
+    description:
+      "Linguine with shrimp, scallops, and mussels in white wine sauce",
+    category: "main dish",
+    price: 26,
+    availability: "available",
+    active: true,
+    image: "/images/seafood-pasta.jpg",
+    spicy: false,
+    modifiers: [
+      { name: "Add Lobster", price: 12 },
+      { name: "Spicy Marinara", price: 0 },
+      { name: "Gluten-Free Pasta", price: 2 },
+    ],
   },
 ];
 
-const seedTables: TableModel[] = Array.from({ length: 12 }, (_, idx) => ({
-  id: `t${idx + 1}`,
-  tableNumber: idx + 1,
-  status: idx < 2 ? "in_progress" : idx === 2 ? "ready_to_serve" : "available",
-}));
+const seedTables: TableModel[] = [
+  // Available tables
+  {
+    id: "t1",
+    tableNumber: 1,
+    status: "available",
+    reserved: false,
+    section: "main",
+    capacity: 4,
+    currentGuests: 0,
+    waiterId: null,
+  },
+  {
+    id: "t2",
+    tableNumber: 2,
+    status: "available",
+    reserved: false,
+    section: "main",
+    capacity: 4,
+    currentGuests: 0,
+    waiterId: null,
+  },
+  {
+    id: "t3",
+    tableNumber: 3,
+    status: "available",
+    reserved: false,
+    section: "main",
+    capacity: 2,
+    currentGuests: 0,
+    waiterId: null,
+  },
+  {
+    id: "t4",
+    tableNumber: 4,
+    status: "available",
+    reserved: false,
+    section: "window",
+    capacity: 6,
+    currentGuests: 0,
+    waiterId: null,
+  },
+
+  // Reserved tables
+  {
+    id: "t5",
+    tableNumber: 5,
+    status: "available",
+    reserved: true,
+    reservedFor: "Smith Party",
+    reservationTime: "19:30",
+    section: "window",
+    capacity: 8,
+    currentGuests: 0,
+    waiterId: null,
+  },
+  {
+    id: "t6",
+    tableNumber: 6,
+    status: "available",
+    reserved: true,
+    reservedFor: "Johnson",
+    reservationTime: "20:00",
+    section: "window",
+    capacity: 4,
+    currentGuests: 0,
+    waiterId: null,
+  },
+
+  // Tables with orders in progress
+  {
+    id: "t7",
+    tableNumber: 7,
+    status: "in_progress",
+    reserved: false,
+    section: "main",
+    capacity: 4,
+    currentGuests: 3,
+    waiterId: "w1",
+    orderStartTime: new Date(Date.now() - 45 * 60000).toISOString(), // 45 minutes ago
+    lastAction: "Order sent to kitchen",
+  },
+  {
+    id: "t8",
+    tableNumber: 8,
+    status: "in_progress",
+    reserved: false,
+    section: "patio",
+    capacity: 6,
+    currentGuests: 4,
+    waiterId: "w2",
+    orderStartTime: new Date(Date.now() - 25 * 60000).toISOString(), // 25 minutes ago
+    lastAction: "Drinks served",
+  },
+
+  // Ready to serve
+  {
+    id: "t9",
+    tableNumber: 9,
+    status: "ready_to_serve",
+    reserved: false,
+    section: "main",
+    capacity: 2,
+    currentGuests: 2,
+    waiterId: "w1",
+    orderStartTime: new Date(Date.now() - 15 * 60000).toISOString(),
+    lastAction: "Food ready for serving",
+  },
+
+  // Needing attention
+  {
+    id: "t10",
+    tableNumber: 10,
+    status: "in_progress",
+    reserved: false,
+    section: "patio",
+    capacity: 4,
+    currentGuests: 4,
+    waiterId: "w2",
+    needsAttention: true,
+    attentionReason: "Water refill requested",
+    orderStartTime: new Date(Date.now() - 55 * 60000).toISOString(),
+  },
+
+  // Recently cleared
+  {
+    id: "t11",
+    tableNumber: 11,
+    status: "available",
+    reserved: false,
+    section: "main",
+    capacity: 4,
+    currentGuests: 0,
+    waiterId: null,
+    needsCleaning: true,
+  },
+
+  // VIP section
+  {
+    id: "t12",
+    tableNumber: 12,
+    status: "available",
+    reserved: true,
+    reservedFor: "VIP - Anniversary",
+    reservationTime: "21:00",
+    section: "vip",
+    capacity: 10,
+    currentGuests: 0,
+    waiterId: "w3",
+    specialRequests: "Anniversary celebration - decorations requested",
+  },
+];
 
 const seedOrders: Order[] = [
   {
@@ -178,7 +500,15 @@ const seedOrders: Order[] = [
 ];
 
 const seedPayments: PaymentRecord[] = [
-  { id: "p1", orderId: "o3", subtotal: 14, tip: 3, total: 17, finalized: false },
+  {
+    id: "p1",
+    orderId: "o3",
+    subtotal: 14,
+    tip: 3,
+    total: 17,
+    finalized: false,
+    requestedAt: nowIso(),
+  },
 ];
 
 const seedChefSettings: ChefSettings = {
@@ -211,7 +541,8 @@ const updateTableFromOrderStatus = (status: OrderStatus): TableStatus => {
   }
 };
 
-const calcOrderSubtotal = (items: OrderItem[]) => items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+const calcOrderSubtotal = (items: OrderItem[]) =>
+  items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   currentRole: "manager",
@@ -222,33 +553,59 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   orders: seedOrders,
   payments: seedPayments,
   notifications: [],
-  ticketCounter: Math.max(...seedOrders.map((order) => order.ticketNumber), 0) + 1,
+  ticketCounter:
+    Math.max(...seedOrders.map((order) => order.ticketNumber), 0) + 1,
   chefSettings: seedChefSettings,
 
   setCurrentRole: (role) => {
-    const userByRole = get().staff.find((staff) => staff.role === role && staff.active);
-    set({ currentRole: role, currentUserId: userByRole?.id ?? get().currentUserId });
+    const userByRole = get().staff.find(
+      (staff) => staff.role === role && staff.active,
+    );
+    set({
+      currentRole: role,
+      currentUserId: userByRole?.id ?? get().currentUserId,
+    });
   },
 
   setCurrentUserId: (userId) => set({ currentUserId: userId }),
 
-  addStaff: (payload) => set((state) => ({ staff: [...state.staff, { id: makeId("staff"), ...payload }] })),
+  addStaff: (payload) =>
+    set((state) => ({
+      staff: [...state.staff, { id: makeId("staff"), ...payload }],
+    })),
 
   updateStaff: (id, payload) =>
-    set((state) => ({ staff: state.staff.map((staff) => (staff.id === id ? { ...staff, ...payload } : staff)) })),
+    set((state) => ({
+      staff: state.staff.map((staff) =>
+        staff.id === id ? { ...staff, ...payload } : staff,
+      ),
+    })),
 
   toggleStaffActive: (id) =>
     set((state) => ({
-      staff: state.staff.map((staff) => (staff.id === id ? { ...staff, active: !staff.active } : staff)),
+      staff: state.staff.map((staff) =>
+        staff.id === id ? { ...staff, active: !staff.active } : staff,
+      ),
     })),
 
-  addMenuItem: (payload) => set((state) => ({ menu: [...state.menu, { id: makeId("menu"), ...payload }] })),
+  addMenuItem: (payload) =>
+    set((state) => ({
+      menu: [...state.menu, { id: makeId("menu"), ...payload }],
+    })),
 
   updateMenuItem: (id, payload) =>
-    set((state) => ({ menu: state.menu.map((item) => (item.id === id ? { ...item, ...payload } : item)) })),
+    set((state) => ({
+      menu: state.menu.map((item) =>
+        item.id === id ? { ...item, ...payload } : item,
+      ),
+    })),
 
   toggleMenuItemActive: (id) =>
-    set((state) => ({ menu: state.menu.map((item) => (item.id === id ? { ...item, active: !item.active } : item)) })),
+    set((state) => ({
+      menu: state.menu.map((item) =>
+        item.id === id ? { ...item, active: !item.active } : item,
+      ),
+    })),
 
   setMenuAvailability: (id, availability) =>
     set((state) => {
@@ -260,7 +617,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const message = `${target.name} is now ${availability === "out_of_stock" ? "out of stock" : "available"}.`;
 
       return {
-        menu: state.menu.map((item) => (item.id === id ? { ...item, availability } : item)),
+        menu: state.menu.map((item) =>
+          item.id === id ? { ...item, availability } : item,
+        ),
         notifications: [
           {
             id: makeId("notif"),
@@ -274,14 +633,18 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       };
     }),
 
-  bulkSetMenuAvailability: (ids, availability) =>
+  bulkSetMenuAvailability: (ids: string[], availability: MenuAvailability) =>
     set((state) => ({
-      menu: state.menu.map((item) => (ids.includes(item.id) ? { ...item, availability } : item)),
+      menu: state.menu.map((item) =>
+        ids.includes(item.id) ? { ...item, availability } : item,
+      ),
     })),
 
-  setMenuLowStock: (id, lowStock) =>
+  setMenuLowStock: (id: string, lowStock: boolean) =>
     set((state) => ({
-      menu: state.menu.map((item) => (item.id === id ? { ...item, lowStock } : item)),
+      menu: state.menu.map((item) =>
+        item.id === id ? { ...item, lowStock } : item,
+      ),
     })),
 
   createOrder: (tableNumber, waiterId, items, waiterNote) =>
@@ -302,7 +665,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         orders: [order, ...state.orders],
         ticketCounter: state.ticketCounter + 1,
         tables: state.tables.map((table) =>
-          table.tableNumber === tableNumber ? { ...table, status: "ordering" } : table,
+          table.tableNumber === tableNumber
+            ? { ...table, status: "ordering" }
+            : table,
         ),
       };
     }),
@@ -332,7 +697,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       }
 
       const updatedOrders = state.orders.map((order) =>
-        order.id === orderId ? { ...order, status, rejectNote, updatedAt: nowIso() } : order,
+        order.id === orderId
+          ? { ...order, status, rejectNote, updatedAt: nowIso() }
+          : order,
       );
 
       const updatedTables = state.tables.map((table) =>
@@ -342,7 +709,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       );
 
       const subtotal = calcOrderSubtotal(target.items);
-      const paymentExists = state.payments.some((payment) => payment.orderId === orderId);
+      const paymentExists = state.payments.some(
+        (payment) => payment.orderId === orderId,
+      );
       const paymentToAdd =
         status === "completed" && !paymentExists
           ? [
@@ -381,8 +750,44 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
             : payment,
         ),
         tables: state.tables.map((table) =>
-          order && table.tableNumber === order.tableNumber ? { ...table, status: "available" } : table,
+          order && table.tableNumber === order.tableNumber
+            ? { ...table, status: "available" }
+            : table,
         ),
+      };
+    }),
+  requestPayment: (orderId, options) =>
+    set((state) => {
+      const order = state.orders.find((item) => item.id === orderId);
+      if (!order) {
+        return state;
+      }
+      const requestExists = state.payments.some(
+        (payment) => payment.orderId === orderId && !payment.finalized,
+      );
+      if (requestExists) {
+        return state;
+      }
+
+      const billingItems =
+        options?.items && options.items.length > 0 ? options.items : order.items;
+      const subtotal = calcOrderSubtotal(billingItems);
+
+      return {
+        payments: [
+          {
+            id: makeId("payment"),
+            orderId,
+            subtotal,
+            tip: 0,
+            total: subtotal,
+            finalized: false,
+            requestedAt: nowIso(),
+            items: billingItems,
+            label: options?.label,
+          },
+          ...state.payments,
+        ],
       };
     }),
 
@@ -411,13 +816,19 @@ export const roleFromPath = (pathname: string): UserRole => {
   return "manager";
 };
 
-export const roleTitle = (role: UserRole) => role.charAt(0).toUpperCase() + role.slice(1);
+export const roleTitle = (role: UserRole) =>
+  role.charAt(0).toUpperCase() + role.slice(1);
 
 export const currency = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+    value,
+  );
 
 export const humanTime = (isoDate: string) =>
-  new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit" }).format(new Date(isoDate));
+  new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(isoDate));
 
 export const formatDateTime = (isoDate: string) =>
   new Intl.DateTimeFormat("en-US", {

@@ -15,9 +15,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       } ${chefSettings.largeTextMode ? "text-lg" : ""}`}
     >
       <Topbar />
-      <div className="flex">
+      <div className="flex min-h-[calc(100vh-56px)]">
         <Sidebar />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">{children}</main>
       </div>
     </div>
   );
