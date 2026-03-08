@@ -22,6 +22,8 @@ export type MenuItem = {
   category: MenuCategory;
   price: number;
   availability: MenuAvailability;
+  lowStock?: boolean;
+  image?: string;
   active: boolean;
 };
 
@@ -34,6 +36,7 @@ export type OrderItem = {
 
 export type Order = {
   id: string;
+  ticketNumber: number;
   tableNumber: number;
   waiterId: string;
   status: OrderStatus;
@@ -42,6 +45,21 @@ export type Order = {
   rejectNote?: string;
   createdAt: string;
   updatedAt: string;
+};
+
+export type KitchenLayout = "grid" | "compact" | "kanban";
+
+export type ChefSettings = {
+  orderSoundEnabled: boolean;
+  cookingTimeWarningMins: number;
+  showElapsedTimer: boolean;
+  displayMode: "light" | "dark";
+  largeTextMode: boolean;
+  autoRefreshIntervalSec: number;
+  restaurantName: string;
+  tableCount: number;
+  kitchenLayout: KitchenLayout;
+  notificationsEnabled: boolean;
 };
 
 export type TableModel = {
