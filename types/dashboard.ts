@@ -1,12 +1,22 @@
 export type UserRole = "manager" | "waiter" | "chef" | "cashier";
 
-export type OrderStatus = "pending" | "in_progress" | "ready" | "completed" | "rejected";
+export type OrderStatus =
+  | "pending"
+  | "in_progress"
+  | "ready"
+  | "completed"
+  | "rejected";
 
-export type TableStatus = "available" | "ordering" | "in_progress" | "ready_to_serve" | "finished";
+export type TableStatus =
+  | "available"
+  | "ordering"
+  | "in_progress"
+  | "ready_to_serve"
+  | "finished";
 
 export type MenuCategory = "starter" | "main dish" | "dessert" | "drink";
 
-export type MenuAvailability = "available" | "out_of_stock";
+export type MenuAvailability = "available" | "out_of_stock" | "limited";
 
 export type StaffMember = {
   id: string;
@@ -19,12 +29,18 @@ export type StaffMember = {
 export type MenuItem = {
   id: string;
   name: string;
-  category: MenuCategory;
+  description?: string;
+  category: string;
   price: number;
   availability: MenuAvailability;
   lowStock?: boolean;
-  image?: string;
   active: boolean;
+  image?: string;
+  spicy?: boolean;
+  modifiers?: Array<{
+    name: string;
+    price: number;
+  }>;
 };
 
 export type OrderItem = {
@@ -65,7 +81,25 @@ export type ChefSettings = {
 export type TableModel = {
   id: string;
   tableNumber: number;
-  status: TableStatus;
+  status:
+    | "available"
+    | "in_progress"
+    | "ready_to_serve"
+    | "occupied"
+    | "cleaning";
+  reserved: boolean;
+  reservedFor?: string;
+  reservationTime?: string;
+  section: "main" | "window" | "patio" | "vip" | "bar";
+  capacity: number;
+  currentGuests: number;
+  waiterId: string | null;
+  orderStartTime?: string;
+  lastAction?: string;
+  needsAttention?: boolean;
+  attentionReason?: string;
+  needsCleaning?: boolean;
+  specialRequests?: string;
 };
 
 export type PaymentRecord = {
@@ -76,6 +110,7 @@ export type PaymentRecord = {
   total: number;
   finalized: boolean;
   paidAt?: string;
+  requestedAt?: string;
 };
 
 export type AppNotification = {

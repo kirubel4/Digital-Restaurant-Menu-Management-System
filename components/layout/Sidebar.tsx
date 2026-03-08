@@ -15,8 +15,10 @@ const roleLinks: Record<UserRole, { href: string; label: string }[]> = {
     { href: "/manager/settings", label: "Settings" },
   ],
   waiter: [
-    { href: "/waiter", label: "Tables" },
+    { href: "/waiter", label: "Dashboard" },
+    { href: "/waiter/tables", label: "Tables" },
     { href: "/waiter/orders", label: "Orders" },
+    { href: "/waiter/payments", label: "Payment Transactions" },
     { href: "/waiter/settings", label: "Settings" },
   ],
   chef: [
