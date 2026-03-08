@@ -36,6 +36,8 @@ type DashboardState = {
   updateMenuItem: (id: string, payload: Partial<Omit<MenuItem, "id">>) => void;
   toggleMenuItemActive: (id: string) => void;
   setMenuAvailability: (id: string, availability: MenuAvailability) => void;
+  bulkSetMenuAvailability: (ids: string[], availability: MenuAvailability) => void;
+  setMenuLowStock: (id: string, lowStock: boolean) => void;
   createOrder: (
     tableNumber: number,
     waiterId: string,
@@ -628,14 +630,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       };
     }),
 
-  bulkSetMenuAvailability: (ids, availability) =>
+  bulkSetMenuAvailability: (ids: string[], availability: MenuAvailability) =>
     set((state) => ({
       menu: state.menu.map((item) =>
         ids.includes(item.id) ? { ...item, availability } : item,
       ),
     })),
 
-  setMenuLowStock: (id, lowStock) =>
+  setMenuLowStock: (id: string, lowStock: boolean) =>
     set((state) => ({
       menu: state.menu.map((item) =>
         item.id === id ? { ...item, lowStock } : item,

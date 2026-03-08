@@ -83,10 +83,12 @@ export type TableModel = {
   tableNumber: number;
   status:
     | "available"
+    | "ordering"
     | "in_progress"
     | "ready_to_serve"
     | "occupied"
-    | "cleaning";
+    | "cleaning"
+    | "finished";
   reserved: boolean;
   reservedFor?: string;
   reservationTime?: string;
