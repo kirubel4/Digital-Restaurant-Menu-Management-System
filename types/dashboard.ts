@@ -113,6 +113,8 @@ export type PaymentRecord = {
   finalized: boolean;
   paidAt?: string;
   requestedAt?: string;
+  items?: OrderItem[];
+  label?: string;
 };
 
 export type AppNotification = {

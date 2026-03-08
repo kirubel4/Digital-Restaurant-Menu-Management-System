@@ -54,7 +54,7 @@ export default function WaiterPaymentsPage() {
   );
 
   return (
-    <section className="space-y-6">
+    <section className="mx-auto w-full max-w-6xl space-y-6 px-4 sm:px-6 lg:px-0">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Payments</p>
         <h1 className="text-3xl font-bold text-slate-900">Payment transactions</h1>
@@ -99,7 +99,7 @@ export default function WaiterPaymentsPage() {
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
         <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>

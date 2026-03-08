@@ -93,7 +93,7 @@ export default function WaiterOrdersPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="mx-auto w-full max-w-6xl space-y-6 px-4 sm:px-6 lg:px-0">
       <header className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -145,7 +145,7 @@ export default function WaiterOrdersPage() {
         </div>
       </header>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
         <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>

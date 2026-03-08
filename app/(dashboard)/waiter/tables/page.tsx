@@ -73,7 +73,7 @@ export default function WaiterTablesPage() {
   });
 
   return (
-    <section className="space-y-6">
+    <section className="mx-auto w-full max-w-6xl space-y-6 px-4 sm:px-6 lg:px-0">
       <header className="flex flex-col gap-1">
         <div className="flex items-center justify-between gap-4">
           <div>

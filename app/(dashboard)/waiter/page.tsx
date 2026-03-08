@@ -50,7 +50,7 @@ export default function WaiterDashboardPage() {
   });
 
   return (
-    <section className="space-y-8">
+    <section className="mx-auto w-full max-w-6xl space-y-8 px-4 sm:px-6 lg:px-0">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-slate-900">Waiter dashboard</h1>
         <p className="text-sm text-slate-500">Quick insights so you can move fast during service.</p>

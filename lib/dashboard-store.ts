@@ -55,7 +55,10 @@ type DashboardState = {
     rejectNote?: string,
   ) => void;
   finalizePayment: (orderId: string, tip: number) => void;
-  requestPayment: (orderId: string) => void;
+  requestPayment: (
+    orderId: string,
+    options?: { items?: OrderItem[]; label?: string },
+  ) => void;
   markNotificationsRead: (role: UserRole) => void;
   resetTicketCounter: () => void;
   updateChefSettings: (payload: Partial<ChefSettings>) => void;
@@ -753,7 +756,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         ),
       };
     }),
-  requestPayment: (orderId) =>
+  requestPayment: (orderId, options) =>
     set((state) => {
       const order = state.orders.find((item) => item.id === orderId);
       if (!order) {
@@ -766,7 +769,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         return state;
       }
 
-      const subtotal = calcOrderSubtotal(order.items);
+      const billingItems =
+        options?.items && options.items.length > 0 ? options.items : order.items;
+      const subtotal = calcOrderSubtotal(billingItems);
 
       return {
         payments: [
@@ -778,6 +783,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
             total: subtotal,
             finalized: false,
             requestedAt: nowIso(),
+            items: billingItems,
+            label: options?.label,
           },
           ...state.payments,
         ],

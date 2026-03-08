@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { Minus, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import StatusBadge from "@/components/shared/StatusBadge";
-import { MenuItem } from "@/types/dashboard";
+import { MenuItem, OrderItem } from "@/types/dashboard";
 import { currency, humanTime, orderStatusColorMap, useDashboardStore } from "@/lib/dashboard-store";
 
 type CartItem = {
@@ -25,6 +25,7 @@ export default function WaiterTableDetailPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [guestCount, setGuestCount] = useState(1);
+  const [paymentSelection, setPaymentSelection] = useState<Record<string, number>>({});
 
   const {
     currentUserId,
@@ -147,9 +148,69 @@ export default function WaiterTableDetailPage() {
     setOrderNote("");
   };
 
-  const orderItemsSummary = activeOrder ? activeOrder.items : [];
+  const orderItemsSummary = useMemo(() => (activeOrder ? activeOrder.items : []), [activeOrder]);
+  const defaultSelection = useMemo(() => {
+    return orderItemsSummary.reduce<Record<string, number>>((acc, item) => {
+      acc[item.menuItemId] = item.quantity;
+      return acc;
+    }, {});
+  }, [orderItemsSummary]);
+
+  useEffect(() => {
+    setPaymentSelection(defaultSelection);
+  }, [defaultSelection]);
+
   const orderTotal = orderItemsSummary.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const selectedPaymentItems = useMemo(() => {
+    if (orderItemsSummary.length === 0) return [];
+    return orderItemsSummary
+      .map((item) => {
+        const quantity = Math.min(
+          item.quantity,
+          Math.max(0, paymentSelection[item.menuItemId] ?? 0),
+        );
+        return quantity > 0 ? { ...item, quantity } : null;
+      })
+      .filter((item): item is OrderItem => item !== null);
+  }, [orderItemsSummary, paymentSelection]);
+  const selectedPaymentTotal = selectedPaymentItems.reduce(
+    (sum, item) => sum + item.quantity * item.unitPrice,
+    0,
+  );
+  const isFullSelection =
+    selectedPaymentItems.length === orderItemsSummary.length &&
+    selectedPaymentItems.every((item) =>
+      orderItemsSummary.some(
+        (original) =>
+          original.menuItemId === item.menuItemId && original.quantity === item.quantity,
+      ),
+    );
   const cartTotal = summarizeOrderItems(cart);
+  const updatePaymentSelection = (menuItemId: string, delta: number) => {
+    const limit = orderItemsSummary.find((item) => item.menuItemId === menuItemId)?.quantity ?? 0;
+    setPaymentSelection((prev) => {
+      const next = Math.min(limit, Math.max(0, (prev[menuItemId] ?? 0) + delta));
+      return { ...prev, [menuItemId]: next };
+    });
+  };
+
+  const handlePaymentInput = (menuItemId: string, value: number) => {
+    const limit = orderItemsSummary.find((item) => item.menuItemId === menuItemId)?.quantity ?? 0;
+    const next = Math.min(limit, Math.max(0, value));
+    setPaymentSelection((prev) => ({ ...prev, [menuItemId]: next }));
+  };
+
+  const resetPaymentSelection = () => {
+    setPaymentSelection(defaultSelection);
+  };
+  const handleRequestPayment = () => {
+    if (!activeOrder || selectedPaymentItems.length === 0) return;
+    requestPayment(activeOrder.id, {
+      items: selectedPaymentItems,
+      label: isFullSelection ? "Full table" : "Split request",
+    });
+  };
+  const canRequestSplit = Boolean(activeOrder && selectedPaymentItems.length > 0 && !pendingPayment);
 
   if (!tableInfo) {
     return <p className="text-sm text-slate-500">Table not found.</p>;
@@ -162,7 +223,7 @@ export default function WaiterTableDetailPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="mx-auto w-full max-w-6xl space-y-6 px-4 sm:px-6 lg:px-0">
       <header className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -367,24 +428,89 @@ export default function WaiterTableDetailPage() {
               placeholder="Add a note for the kitchen"
               className="mt-4 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-slate-400 focus:outline-none"
             />
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="mt-4">
               <button
                 type="button"
                 onClick={submitOrder}
                 disabled={cart.length === 0}
-                className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200"
+                className="w-full rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200"
               >
                 {activeOrder ? "Add to order" : "Send new order"}
               </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Split payment</p>
+                <h3 className="text-lg font-semibold text-slate-900">Choose items</h3>
+              </div>
               <button
                 type="button"
-                onClick={() => activeOrder && requestPayment(activeOrder.id)}
-                disabled={!activeOrder || pendingPayment}
-                className="rounded-2xl border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                onClick={resetPaymentSelection}
+                className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
               >
-                {pendingPayment ? "Payment requested" : "Request payment"}
+                Select all
               </button>
             </div>
+            <div className="space-y-3">
+              {orderItemsSummary.length === 0 ? (
+                <p className="text-sm text-slate-500">No order items yet.</p>
+              ) : (
+                orderItemsSummary.map((item) => (
+                  <div
+                    key={`${item.menuItemId}-split`}
+                    className="flex items-center justify-between rounded-xl border border-slate-100 p-3 text-sm"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {item.quantity} served · {currency(item.unitPrice)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => updatePaymentSelection(item.menuItemId, -1)}
+                        className="rounded border border-slate-200 px-2 text-xs text-slate-600"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={0}
+                        max={item.quantity}
+                        value={paymentSelection[item.menuItemId] ?? 0}
+                        onChange={(event) =>
+                          handlePaymentInput(item.menuItemId, Number(event.target.value))
+                        }
+                        className="w-10 rounded border border-slate-200 px-2 py-1 text-center text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updatePaymentSelection(item.menuItemId, 1)}
+                        className="rounded border border-slate-200 px-2 text-xs text-slate-600"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex items-center justify-between text-sm font-semibold text-slate-900">
+              <span>Selected total</span>
+              <span>{currency(selectedPaymentTotal)}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleRequestPayment}
+              disabled={!canRequestSplit || selectedPaymentTotal === 0}
+              className="w-full rounded-2xl bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
+            >
+              {isFullSelection ? "Request full payment" : "Request selected items"}
+            </button>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5">

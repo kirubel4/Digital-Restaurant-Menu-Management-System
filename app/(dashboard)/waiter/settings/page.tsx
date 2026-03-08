@@ -51,7 +51,7 @@ export default function WaiterSettingsPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="mx-auto w-full max-w-6xl space-y-6 px-4 sm:px-6 lg:px-0">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Settings</p>
         <h1 className="text-3xl font-bold text-slate-900">Waiter settings</h1>
