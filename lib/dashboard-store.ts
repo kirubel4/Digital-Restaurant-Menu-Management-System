@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import {
   AppNotification,
+  ChefSettings,
   MenuAvailability,
   MenuItem,
   Order,
@@ -24,6 +25,8 @@ type DashboardState = {
   orders: Order[];
   payments: PaymentRecord[];
   notifications: AppNotification[];
+  ticketCounter: number;
+  chefSettings: ChefSettings;
   setCurrentRole: (role: UserRole) => void;
   setCurrentUserId: (userId: string) => void;
   addStaff: (payload: Omit<StaffMember, "id">) => void;
@@ -33,11 +36,15 @@ type DashboardState = {
   updateMenuItem: (id: string, payload: Partial<Omit<MenuItem, "id">>) => void;
   toggleMenuItemActive: (id: string) => void;
   setMenuAvailability: (id: string, availability: MenuAvailability) => void;
+  bulkSetMenuAvailability: (ids: string[], availability: MenuAvailability) => void;
+  setMenuLowStock: (id: string, lowStock: boolean) => void;
   createOrder: (tableNumber: number, waiterId: string, items: OrderItem[], waiterNote?: string) => void;
   addItemsToOrder: (orderId: string, items: OrderItem[], waiterNote?: string) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus, rejectNote?: string) => void;
   finalizePayment: (orderId: string, tip: number) => void;
   markNotificationsRead: (role: UserRole) => void;
+  resetTicketCounter: () => void;
+  updateChefSettings: (payload: Partial<ChefSettings>) => void;
 };
 
 const nowIso = () => new Date().toISOString();
@@ -51,13 +58,76 @@ const seedStaff: StaffMember[] = [
 ];
 
 const seedMenu: MenuItem[] = [
-  { id: "m1", name: "Bruschetta", category: "starter", price: 8, availability: "available", active: true },
-  { id: "m2", name: "Caesar Salad", category: "starter", price: 9, availability: "available", active: true },
-  { id: "m3", name: "Grilled Salmon", category: "main dish", price: 22, availability: "available", active: true },
-  { id: "m4", name: "Ribeye Steak", category: "main dish", price: 30, availability: "out_of_stock", active: true },
-  { id: "m5", name: "Tiramisu", category: "dessert", price: 7, availability: "available", active: true },
-  { id: "m6", name: "Lemonade", category: "drink", price: 4, availability: "available", active: true },
-  { id: "m7", name: "Sparkling Water", category: "drink", price: 3, availability: "available", active: false },
+  {
+    id: "m1",
+    name: "Bruschetta",
+    category: "starter",
+    price: 8,
+    availability: "available",
+    lowStock: false,
+    image: "B",
+    active: true,
+  },
+  {
+    id: "m2",
+    name: "Caesar Salad",
+    category: "starter",
+    price: 9,
+    availability: "available",
+    lowStock: true,
+    image: "C",
+    active: true,
+  },
+  {
+    id: "m3",
+    name: "Grilled Salmon",
+    category: "main dish",
+    price: 22,
+    availability: "available",
+    lowStock: false,
+    image: "G",
+    active: true,
+  },
+  {
+    id: "m4",
+    name: "Ribeye Steak",
+    category: "main dish",
+    price: 30,
+    availability: "out_of_stock",
+    lowStock: false,
+    image: "R",
+    active: true,
+  },
+  {
+    id: "m5",
+    name: "Tiramisu",
+    category: "dessert",
+    price: 7,
+    availability: "available",
+    lowStock: false,
+    image: "T",
+    active: true,
+  },
+  {
+    id: "m6",
+    name: "Lemonade",
+    category: "drink",
+    price: 4,
+    availability: "available",
+    lowStock: true,
+    image: "L",
+    active: true,
+  },
+  {
+    id: "m7",
+    name: "Sparkling Water",
+    category: "drink",
+    price: 3,
+    availability: "available",
+    lowStock: false,
+    image: "S",
+    active: false,
+  },
 ];
 
 const seedTables: TableModel[] = Array.from({ length: 12 }, (_, idx) => ({
@@ -69,6 +139,7 @@ const seedTables: TableModel[] = Array.from({ length: 12 }, (_, idx) => ({
 const seedOrders: Order[] = [
   {
     id: "o1",
+    ticketNumber: 1,
     tableNumber: 1,
     waiterId: "waiter_1",
     status: "in_progress",
@@ -82,6 +153,7 @@ const seedOrders: Order[] = [
   },
   {
     id: "o2",
+    ticketNumber: 2,
     tableNumber: 2,
     waiterId: "waiter_1",
     status: "ready",
@@ -95,6 +167,7 @@ const seedOrders: Order[] = [
   },
   {
     id: "o3",
+    ticketNumber: 3,
     tableNumber: 3,
     waiterId: "waiter_1",
     status: "completed",
@@ -107,6 +180,19 @@ const seedOrders: Order[] = [
 const seedPayments: PaymentRecord[] = [
   { id: "p1", orderId: "o3", subtotal: 14, tip: 3, total: 17, finalized: false },
 ];
+
+const seedChefSettings: ChefSettings = {
+  orderSoundEnabled: true,
+  cookingTimeWarningMins: 20,
+  showElapsedTimer: true,
+  displayMode: "light",
+  largeTextMode: false,
+  autoRefreshIntervalSec: 15,
+  restaurantName: "Resto HQ",
+  tableCount: 12,
+  kitchenLayout: "grid",
+  notificationsEnabled: true,
+};
 
 const updateTableFromOrderStatus = (status: OrderStatus): TableStatus => {
   switch (status) {
@@ -136,6 +222,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   orders: seedOrders,
   payments: seedPayments,
   notifications: [],
+  ticketCounter: Math.max(...seedOrders.map((order) => order.ticketNumber), 0) + 1,
+  chefSettings: seedChefSettings,
 
   setCurrentRole: (role) => {
     const userByRole = get().staff.find((staff) => staff.role === role && staff.active);
@@ -186,10 +274,21 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       };
     }),
 
+  bulkSetMenuAvailability: (ids, availability) =>
+    set((state) => ({
+      menu: state.menu.map((item) => (ids.includes(item.id) ? { ...item, availability } : item)),
+    })),
+
+  setMenuLowStock: (id, lowStock) =>
+    set((state) => ({
+      menu: state.menu.map((item) => (item.id === id ? { ...item, lowStock } : item)),
+    })),
+
   createOrder: (tableNumber, waiterId, items, waiterNote) =>
     set((state) => {
       const order: Order = {
         id: makeId("order"),
+        ticketNumber: state.ticketCounter,
         tableNumber,
         waiterId,
         status: "pending",
@@ -201,6 +300,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
       return {
         orders: [order, ...state.orders],
+        ticketCounter: state.ticketCounter + 1,
         tables: state.tables.map((table) =>
           table.tableNumber === tableNumber ? { ...table, status: "ordering" } : table,
         ),
@@ -225,6 +325,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     set((state) => {
       const target = state.orders.find((order) => order.id === orderId);
       if (!target) {
+        return state;
+      }
+      if (status === "rejected" && !rejectNote?.trim()) {
         return state;
       }
 
@@ -288,6 +391,16 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       notifications: state.notifications.map((item) =>
         item.targetRole === role ? { ...item, read: true } : item,
       ),
+    })),
+
+  resetTicketCounter: () => set({ ticketCounter: 1 }),
+
+  updateChefSettings: (payload) =>
+    set((state) => ({
+      chefSettings: {
+        ...state.chefSettings,
+        ...payload,
+      },
     })),
 }));
 
