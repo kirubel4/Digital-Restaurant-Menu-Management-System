@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useDashboardStore } from "@/lib/dashboard-store";
 
 const notificationOptions = [
@@ -12,6 +12,7 @@ const notificationOptions = [
 export default function WaiterSettingsPage() {
   const staff = useDashboardStore((state) => state.staff);
   const currentUserId = useDashboardStore((state) => state.currentUserId);
+  const updateStaff = useDashboardStore((state) => state.updateStaff);
   const currentUser = useMemo(() => staff.find((member) => member.id === currentUserId), [staff, currentUserId]);
 
   const [name, setName] = useState(currentUser?.name ?? "");
@@ -25,8 +26,16 @@ export default function WaiterSettingsPage() {
   const [sessionActive, setSessionActive] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    setName(currentUser?.name ?? "");
+    setEmail(currentUser?.email ?? "");
+  }, [currentUser]);
+
   const handleProfile = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (currentUser) {
+      updateStaff(currentUser.id, { name, email });
+    }
     setStatusMessage("Profile updated successfully.");
     setTimeout(() => setStatusMessage(null), 1800);
   };

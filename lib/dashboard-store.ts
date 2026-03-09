@@ -63,8 +63,8 @@ type DashboardState = {
     status: OrderStatus,
     rejectNote?: string,
   ) => void;
-  finalizePayment: (orderId: string) => void;
-  addTipToFinalizedPayment: (orderId: string, tip: number) => void;
+  finalizePayment: (paymentId: string) => void;
+  addTipToFinalizedPayment: (paymentId: string, tip: number) => void;
   requestPayment: (
     orderId: string,
     options?: { items?: OrderItem[]; label?: string },
@@ -814,12 +814,23 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       };
     }),
 
-  finalizePayment: (orderId) =>
+  finalizePayment: (paymentId) =>
     set((state) => {
-      const order = state.orders.find((item) => item.id === orderId);
+      const payment = state.payments.find((item) => item.id === paymentId);
+      if (!payment) {
+        return state;
+      }
+      const order = state.orders.find((item) => item.id === payment.orderId);
+      const pendingSiblingExists = state.payments.some(
+        (item) =>
+          item.orderId === payment.orderId &&
+          item.id !== paymentId &&
+          !item.finalized,
+      );
+
       return {
         payments: state.payments.map((payment) =>
-          payment.orderId === orderId
+          payment.id === paymentId
             ? {
                 ...payment,
                 finalized: true,
@@ -828,18 +839,18 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
             : payment,
         ),
         tables: state.tables.map((table) =>
-          order && table.tableNumber === order.tableNumber
+          order && !pendingSiblingExists && table.tableNumber === order.tableNumber
             ? { ...table, status: "available" }
             : table,
         ),
       };
     }),
-  addTipToFinalizedPayment: (orderId, tip) =>
+  addTipToFinalizedPayment: (paymentId, tip) =>
     set((state) => {
       const normalizedTip = Math.max(0, Number(tip) || 0);
       return {
         payments: state.payments.map((payment) =>
-          payment.orderId === orderId && payment.finalized
+          payment.id === paymentId && payment.finalized
             ? {
                 ...payment,
                 tip: normalizedTip,

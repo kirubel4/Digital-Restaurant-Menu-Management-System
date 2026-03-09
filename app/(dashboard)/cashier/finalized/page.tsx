@@ -34,7 +34,7 @@ export default function CashierFinalizedTransactionsPage() {
         {finalizedPayments.map(({ payment, order }) => {
           if (!order) return null;
 
-          const tipValue = tipInputs[payment.orderId] ?? payment.tip;
+          const tipValue = tipInputs[payment.id] ?? payment.tip;
           const previewTotal = payment.subtotal + Math.max(0, Number(tipValue) || 0);
 
           return (
@@ -68,7 +68,7 @@ export default function CashierFinalizedTransactionsPage() {
                     onChange={(event) =>
                       setTipInputs((state) => ({
                         ...state,
-                        [payment.orderId]: Number(event.target.value),
+                        [payment.id]: Number(event.target.value),
                       }))
                     }
                     step="0.01"
@@ -78,7 +78,7 @@ export default function CashierFinalizedTransactionsPage() {
                 </label>
                 <button
                   className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-                  onClick={() => addTipToFinalizedPayment(payment.orderId, tipValue)}
+                  onClick={() => addTipToFinalizedPayment(payment.id, tipValue)}
                   type="button"
                 >
                   Save Tip
