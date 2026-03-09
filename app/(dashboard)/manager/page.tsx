@@ -1,94 +1,137 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { currency, useDashboardStore } from "@/lib/dashboard-store";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { currency } from "@/lib/dashboard-store";
+import { useManagerMetrics } from "./lib/use-manager-metrics";
 
-export default function ManagerAnalyticsPage() {
-  const orders = useDashboardStore((state) => state.orders);
-  const tables = useDashboardStore((state) => state.tables);
-  const staff = useDashboardStore((state) => state.staff);
-
-  const totalRevenue = orders
-    .filter((order) => order.status === "completed")
-    .reduce((sum, order) => sum + order.items.reduce((line, item) => line + item.quantity * item.unitPrice, 0), 0);
-
-  const activeOrders = orders.filter((order) => ["pending", "in_progress", "ready"].includes(order.status)).length;
-  const staffActive = staff.filter((member) => member.active).length;
-  const tableOccupancy = Math.round((tables.filter((table) => table.status !== "available").length / tables.length) * 100);
-  const avgTableTime = 48;
-
-  const orderStatusData = [
-    { name: "Pending", value: orders.filter((order) => order.status === "pending").length },
-    { name: "In progress", value: orders.filter((order) => order.status === "in_progress").length },
-    { name: "Ready", value: orders.filter((order) => order.status === "ready").length },
-    { name: "Completed", value: orders.filter((order) => order.status === "completed").length },
-    { name: "Rejected", value: orders.filter((order) => order.status === "rejected").length },
-  ];
-
-  const popularItems = Object.values(
-    orders
-      .flatMap((order) => order.items)
-      .reduce<Record<string, { name: string; qty: number }>>((acc, item) => {
-        if (!acc[item.menuItemId]) {
-          acc[item.menuItemId] = { name: item.name, qty: 0 };
-        }
-        acc[item.menuItemId].qty += item.quantity;
-        return acc;
-      }, {}),
-  )
-    .sort((a, b) => b.qty - a.qty)
-    .slice(0, 5)
-    .map((item) => ({ item: item.name, orders: item.qty }));
-
-  const kpis = [
-    { label: "Total Revenue", value: currency(totalRevenue) },
-    { label: "Active Orders", value: String(activeOrders) },
-    { label: "Staff Active", value: String(staffActive) },
-    { label: "Average Table Time", value: `${avgTableTime} min` },
-    { label: "Table Occupancy", value: `${tableOccupancy}%` },
-    { label: "Popular Menu Items", value: `${popularItems.length} tracked` },
-  ];
+export default function ManagerDashboardPage() {
+  const {
+    dailyRevenue,
+    weeklyRevenue,
+    monthlyRevenue,
+    totalTransactions,
+    revenueTrend,
+    orderDistribution,
+    popularItems,
+    busiestHours,
+    alerts,
+    staffRevenue,
+  } = useManagerMetrics();
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Analytics</h2>
-        <p className="text-sm text-slate-500">Main dashboard with charts and statistics.</p>
-      </div>
+    <div className="space-y-8 p-4 md:p-6">
+      <header className="space-y-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Manager dashboard</p>
+          <h1 className="text-3xl font-bold text-slate-900">Restaurant intelligence center</h1>
+        </div>
+      </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {kpis.map((kpi) => (
-          <article className="rounded-xl border border-slate-200 bg-white p-4" key={kpi.label}>
-            <p className="text-xs uppercase tracking-wide text-slate-500">{kpi.label}</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{kpi.value}</p>
+      <section className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <article className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Daily revenue</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{currency(dailyRevenue)}</p>
           </article>
-        ))}
-      </div>
+          <article className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Weekly revenue</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{currency(weeklyRevenue)}</p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Monthly revenue</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{currency(monthlyRevenue)}</p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Total transactions</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{totalTransactions}</p>
+          </article>
+        </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <article className="h-80 rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-slate-700">Order Status Breakdown</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <PieChart>
-              <Pie data={orderStatusData} dataKey="value" nameKey="name" outerRadius={95} fill="#334155" label />
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </article>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <article className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Revenue trend</p>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={revenueTrend}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis />
+                <Tooltip formatter={(value: number) => currency(value)} />
+                <Bar dataKey="revenue" fill="#0f766e" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Order distribution</p>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={orderDistribution} dataKey="value" nameKey="name" outerRadius={90} fill="#0f766e" />
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </article>
+        </div>
 
-        <article className="h-80 rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-slate-700">Popular Menu Items</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={popularItems}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="item" tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="orders" fill="#0f766e" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <article className="rounded-2xl border border-slate-200 bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Alerts & notifications</p>
+            <div className="mt-3 space-y-2">
+              {alerts.map((alert) => (
+                <div key={alert.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm">
+                  <div className="text-[11px] uppercase tracking-[0.3em] text-slate-500">{alert.source}</div>
+                  <div className="text-slate-900">{alert.message}</div>
+                  <div className="text-xs text-slate-400">{alert.time}</div>
+                </div>
+              ))}
+            </div>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Top selling foods</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {popularItems.map((item) => (
+                <li key={item.name} className="flex items-center justify-between">
+                  <span>{item.name}</span>
+                  <span className="text-xs text-slate-500">{item.qty} orders</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Busiest hours</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {busiestHours.map((hour) => (
+                <li key={hour.label} className="flex items-center justify-between">
+                  <span>{hour.label}</span>
+                  <span className="text-xs text-slate-500">{hour.count} orders</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        </div>
+
+        <article className="rounded-2xl border border-slate-200 bg-white p-5">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Staff activity overview</p>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-dashed border-slate-200 p-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Active staff</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{staffRevenue.filter((member) => member.active).length}</p>
+            </div>
+            <div className="rounded-2xl border border-dashed border-slate-200 p-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Inactive staff</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{staffRevenue.filter((member) => !member.active).length}</p>
+            </div>
+          </div>
         </article>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

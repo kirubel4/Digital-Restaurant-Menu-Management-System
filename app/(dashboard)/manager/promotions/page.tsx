@@ -1,1 +1,0 @@
-export default function Page() { return <section className="space-y-2"><h1 className="text-2xl font-semibold">Manager promotions</h1><p className="text-slate-600">Scaffolded page placeholder.</p></section>; }

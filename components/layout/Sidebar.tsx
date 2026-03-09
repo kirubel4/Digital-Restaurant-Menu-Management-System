@@ -15,7 +15,6 @@ import {
   Gauge,
   History,
   ListChecks,
-  Menu,
   Package,
   Settings,
   Table,
@@ -33,10 +32,10 @@ type LinkItem = { href: string; label: string; Icon: LucideIcon };
 
 const roleLinks: Record<UserRole, LinkItem[]> = {
   manager: [
-    { href: "/manager", label: "Analytics", Icon: BarChart3 },
+    { href: "/manager", label: "Dashboard", Icon: BarChart3 },
     { href: "/manager/staff", label: "Staff Management", Icon: Users },
     { href: "/manager/menu", label: "Menu Management", Icon: ListChecks },
-    { href: "/manager/orders", label: "Orders", Icon: Package },
+    { href: "/manager/orders", label: "Orders & Transactions", Icon: Package },
     { href: "/manager/settings", label: "Settings", Icon: Settings },
   ],
   waiter: [
@@ -67,6 +66,8 @@ const roleLinks: Record<UserRole, LinkItem[]> = {
 };
 
 const STORAGE_KEY = "dashboard-sidebar-collapsed";
+const COLLAPSED_WIDTH = 72;
+const EXPANDED_WIDTH = 250;
 
 type SidebarProps = {
   mobileOpen: boolean;
@@ -82,6 +83,19 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
   );
   const isDarkMode = displayMode === "dark";
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    const body = document.body;
+    const originalOverflow = body.style.overflow;
+    if (mobileOpen) {
+      body.style.overflow = "hidden";
+    } else {
+      body.style.overflow = originalOverflow;
+    }
+    return () => {
+      body.style.overflow = originalOverflow;
+    };
+  }, [mobileOpen]);
 
   useEffect(() => {
     setCurrentRole(activeRole);
@@ -103,19 +117,29 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
     ? "border-slate-800 bg-slate-900/80 text-slate-100"
     : "border-slate-200 bg-white/80 text-slate-900";
   const textColor = isDarkMode ? "text-slate-400" : "text-slate-500";
-  const sidebarWidth = isCollapsed ? "w-20" : "w-[250px]";
   const tooltipClasses = isDarkMode
     ? "border-slate-700 bg-slate-900 text-slate-100"
     : "border-slate-200 bg-white text-slate-900";
+  const widthStyle = {
+    width: `${isCollapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH}px`,
+    minWidth: `${isCollapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH}px`,
+  };
+  const navLabel = `${roleTitle(activeRole)} navigation`;
+  const mobileNavLabel = `${roleTitle(activeRole)} mobile navigation`;
 
   return (
     <>
       <aside
         className={clsx(
-          "hidden md:flex flex-col flex-shrink-0 min-h-[calc(100vh-56px)] border-r p-4 backdrop-blur transition-all duration-200 ease-in-out",
-          sidebarWidth,
+          "hidden md:flex flex-col flex-shrink-0 min-h-[calc(100vh-56px)] border-r p-4 backdrop-blur transition-[width] duration-200 ease-in-out overflow-y-visible",
           bgClasses,
         )}
+        style={{
+          ...widthStyle,
+          top: "56px",
+          position: "sticky",
+          maxHeight: "calc(100vh - 56px)",
+        }}
       >
         <div
           className={clsx(
@@ -124,9 +148,6 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
           )}
         >
           <div className="flex items-center gap-2">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              <Menu className="h-5 w-5" />
-            </span>
             {!isCollapsed && (
               <div>
                 <p
@@ -156,7 +177,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
             )}
           </button>
         </div>
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-col gap-2" aria-label={navLabel}>
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             const linkColors = isActive
@@ -164,24 +185,31 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
               : isDarkMode
                 ? "text-slate-200 hover:bg-slate-800"
                 : "text-slate-700 hover:bg-slate-100";
+            const tooltipId = `sidebar-tooltip-${link.href.replace(/[^a-zA-Z0-9]/g, "-")}`;
 
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 className={clsx(
-                  "group relative flex items-center rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400",
+                  "group relative flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400",
                   isCollapsed ? "justify-center gap-0" : "gap-3",
                   linkColors,
                 )}
+                aria-label={link.label}
+                aria-current={isActive ? "page" : undefined}
+                aria-describedby={isCollapsed ? tooltipId : undefined}
               >
                 <link.Icon className="h-5 w-5 flex-shrink-0" aria-hidden />
                 {!isCollapsed && link.label}
                 {isCollapsed && (
                   <span
+                    id={tooltipId}
+                    role="tooltip"
                     className={clsx(
-                      "pointer-events-none absolute left-full top-1/2 hidden -translate-y-1/2 rounded-md border px-2 py-1 text-xs font-semibold shadow-lg transition-opacity duration-150 group-hover:block",
+                      "pointer-events-none absolute left-full top-1/2 hidden -translate-y-1/2 rounded-md border px-2 py-1 text-xs font-semibold shadow-lg transition-opacity duration-150",
                       tooltipClasses,
+                      "group-hover:block group-focus-visible:block",
                     )}
                   >
                     {link.label}
@@ -191,7 +219,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
             );
           })}
         </nav>
-        <div className={`mt-6 border-t pt-4 text-xs ${textColor}`}>Switch role from top bar.</div>
+        <div className={`mt-6 border-t pt-4 text-xs ${textColor}`}></div>
       </aside>
 
       {mobileOpen && (
@@ -221,7 +249,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
                 Close
               </button>
             </div>
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-2" aria-label={mobileNavLabel}>
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 const linkColors = isActive
@@ -237,6 +265,8 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400",
                       linkColors,
                     )}
+                    aria-label={link.label}
+                    aria-current={isActive ? "page" : undefined}
                   >
                     <link.Icon
                       className="h-5 w-5 flex-shrink-0 text-slate-600"
