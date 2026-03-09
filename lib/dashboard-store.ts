@@ -35,6 +35,7 @@ type DashboardState = {
   addMenuItem: (payload: Omit<MenuItem, "id">) => void;
   updateMenuItem: (id: string, payload: Partial<Omit<MenuItem, "id">>) => void;
   toggleMenuItemActive: (id: string) => void;
+  removeMenuItem: (id: string) => void;
   setMenuAvailability: (id: string, availability: MenuAvailability) => void;
   bulkSetMenuAvailability: (ids: string[], availability: MenuAvailability) => void;
   setMenuLowStock: (id: string, lowStock: boolean) => void;
@@ -109,6 +110,7 @@ const seedMenu: MenuItem[] = [
     price: 8,
     availability: "available",
     active: true,
+    special: false,
     image: "/images/bruschetta.jpg",
     spicy: false,
     modifiers: [
@@ -125,6 +127,7 @@ const seedMenu: MenuItem[] = [
     price: 9,
     availability: "available",
     active: true,
+    special: false,
     image: "/images/caesar-salad.jpg",
     spicy: false,
     modifiers: [
@@ -144,6 +147,7 @@ const seedMenu: MenuItem[] = [
     price: 22,
     availability: "available",
     active: true,
+    special: false,
     image: "/images/grilled-salmon.jpg",
     spicy: false,
     modifiers: [
@@ -159,6 +163,7 @@ const seedMenu: MenuItem[] = [
     price: 30,
     availability: "out_of_stock",
     active: true,
+    special: false,
     image: "/images/ribeye-steak.jpg",
     spicy: false,
     modifiers: [
@@ -180,6 +185,7 @@ const seedMenu: MenuItem[] = [
     price: 7,
     availability: "available",
     active: true,
+    special: false,
     image: "/images/tiramisu.jpg",
     spicy: false,
     modifiers: [
@@ -197,6 +203,7 @@ const seedMenu: MenuItem[] = [
     price: 4,
     availability: "available",
     active: true,
+    special: false,
     image: "/images/lemonade.jpg",
     spicy: false,
     modifiers: [
@@ -605,6 +612,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       menu: state.menu.map((item) =>
         item.id === id ? { ...item, active: !item.active } : item,
       ),
+    })),
+
+  removeMenuItem: (id) =>
+    set((state) => ({
+      menu: state.menu.filter((item) => item.id !== id),
     })),
 
   setMenuAvailability: (id, availability) =>

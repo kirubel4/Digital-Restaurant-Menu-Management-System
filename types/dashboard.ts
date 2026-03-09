@@ -41,6 +41,7 @@ export type MenuItem = {
     name: string;
     price: number;
   }>;
+  special?: boolean;
 };
 
 export type OrderItem = {
