@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { useDashboardStore } from "@/lib/dashboard-store";
 import Switch from "@/components/ui/switch";
 
@@ -30,29 +31,32 @@ export default function ChefMenuAvailabilityPage() {
   const visibleIds = filteredMenu.map((item) => item.id);
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900">Menu Availability</h2>
-          <p className="text-sm text-slate-500">Enable, disable, and track low stock items quickly.</p>
+    <section className="mx-auto w-full max-w-6xl space-y-6">
+      <header className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Kitchen controls</p>
+            <h1 className="text-3xl font-bold text-slate-900">Menu Availability</h1>
+            <p className="text-sm text-slate-500">Enable, disable, and track low stock items quickly.</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700"
+              onClick={() => bulkSetMenuAvailability(visibleIds, "available")}
+              type="button"
+            >
+              Bulk Enable
+            </button>
+            <button
+              className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700"
+              onClick={() => bulkSetMenuAvailability(visibleIds, "out_of_stock")}
+              type="button"
+            >
+              Bulk Disable
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700"
-            onClick={() => bulkSetMenuAvailability(visibleIds, "available")}
-            type="button"
-          >
-            Bulk Enable
-          </button>
-          <button
-            className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700"
-            onClick={() => bulkSetMenuAvailability(visibleIds, "out_of_stock")}
-            type="button"
-          >
-            Bulk Disable
-          </button>
-        </div>
-      </div>
+      </header>
 
       <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2">
         <input
@@ -83,8 +87,17 @@ export default function ChefMenuAvailabilityPage() {
             key={item.id}
           >
             <div className="mb-3 flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-900 text-xl font-black text-white">
-                {item.image || item.name.charAt(0)}
+              <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg bg-slate-900 text-xl font-black text-white">
+                {item.image ? (
+                  <Image
+                    alt={item.name}
+                    fill
+                    className="h-full w-full object-cover"
+                    src={item.image}
+                  />
+                ) : (
+                  item.name.charAt(0)
+                )}
               </div>
               <div>
                 <h3 className="font-bold text-slate-900">{item.name}</h3>

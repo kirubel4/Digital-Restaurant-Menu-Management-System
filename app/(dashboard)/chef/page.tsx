@@ -1,20 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { AnimatePresence, motion } from "framer-motion";
 import StatusBadge from "@/components/shared/StatusBadge";
-import {
-  formatDateTime,
-  humanTime,
-  orderStatusColorMap,
-  readableStatus,
-  useDashboardStore,
-} from "@/lib/dashboard-store";
+import { formatDateTime, humanTime, useDashboardStore } from "@/lib/dashboard-store";
 
 export default function ChefLiveOrdersPage() {
   const orders = useDashboardStore((state) => state.orders);
+  const menu = useDashboardStore((state) => state.menu);
   const updateOrderStatus = useDashboardStore((state) => state.updateOrderStatus);
-  const resetTicketCounter = useDashboardStore((state) => state.resetTicketCounter);
   const chefSettings = useDashboardStore((state) => state.chefSettings);
 
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
@@ -25,185 +20,236 @@ export default function ChefLiveOrdersPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const liveOrders = useMemo(() => {
-    return orders
-      .filter((order) =>
-        ["pending", "in_progress", "ready"].includes(order.status)
-      )
-      .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
-  }, [orders]);
+  const menuImageById = useMemo(
+    () =>
+      menu.reduce<Record<string, string | undefined>>((acc, item) => {
+        acc[item.id] = item.image;
+        return acc;
+      }, {}),
+    [menu],
+  );
 
-  const handleResetTickets = () => {
-    const confirmReset = confirm(
-      "Reset ticket numbering? New orders will start from #1."
-    );
+  const liveOrders = useMemo(
+    () =>
+      orders
+        .filter((order) => ["pending", "in_progress", "ready"].includes(order.status))
+        .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt)),
+    [orders],
+  );
 
-    if (confirmReset) {
-      resetTicketCounter();
-    }
-  };
+  const waitingOrders = useMemo(
+    () => liveOrders.filter((order) => order.status === "pending"),
+    [liveOrders],
+  );
+
+  const cookingOrders = useMemo(
+    () => liveOrders.filter((order) => ["in_progress", "ready"].includes(order.status)),
+    [liveOrders],
+  );
 
   return (
-    <section className={`space-y-6 ${chefSettings.largeTextMode ? "text-lg" : ""}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-black uppercase tracking-wide text-slate-900">Kitchen Display</h2>
-          <p className="text-sm text-slate-500">
-            Ticket numbers remain fixed for each order. New tickets continue sequentially.
-          </p>
-        </div>
+    <section className={`mx-auto w-full max-w-7xl space-y-8 ${chefSettings.largeTextMode ? "text-lg" : ""}`}>
+      <header>
+        <h2 className="text-4xl font-black tracking-tight text-slate-900">Kitchen Live Orders</h2>
+        <p className="text-sm text-slate-500">FIFO order flow: oldest first, grouped by Waiting and Cooking.</p>
+      </header>
 
-        <button
-          onClick={handleResetTickets}
-          className="rounded-lg border border-rose-200 bg-rose-50 px-5 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
-        >
-          Reset Ticket Counter
-        </button>
-      </div>
+      <section className="space-y-4">
+        <header className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <h3 className="text-2xl font-bold text-amber-900">Waiting Orders</h3>
+          <p className="text-sm text-amber-800">Not accepted yet</p>
+        </header>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <AnimatePresence>
-          {liveOrders.map((order) => (
-            <motion.section
-              key={order.id}
-              initial={{ opacity: 0, y: 25, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -18, scale: 0.98 }}
-              transition={{ duration: 0.3 }}
-              className={`relative overflow-hidden rounded-2xl border-2 bg-white p-6 shadow-lg ${
-                now - new Date(order.createdAt).getTime() > chefSettings.cookingTimeWarningMins * 60 * 1000
-                  ? "border-amber-500 ring-4 ring-amber-100"
-                  : "border-slate-200"
-              }`}
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 230, damping: 15 }}
-                className="absolute -left-1 -top-1 flex h-16 w-16 items-center justify-center rounded-br-2xl rounded-tl-2xl bg-slate-900 text-xl font-black text-white"
+        <div className="grid gap-4 xl:grid-cols-2">
+          <AnimatePresence>
+            {waitingOrders.map((order) => (
+              <motion.article
+                key={order.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18 }}
+                className="rounded-2xl border border-amber-300 bg-white p-5 shadow-sm"
               >
-                #{order.ticketNumber}
-              </motion.div>
-
-              <div className="mb-4 ml-16 flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-3xl font-black text-slate-900">Table {order.tableNumber}</h3>
-                  <p className="text-sm text-slate-500">Received {humanTime(order.createdAt)}</p>
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-3xl font-black text-slate-900">Table {order.tableNumber}</h4>
+                    <p className="text-sm text-slate-600">Received {humanTime(order.createdAt)}</p>
+                    <p className="text-xs text-slate-500">{formatDateTime(order.createdAt)}</p>
+                  </div>
+                  <StatusBadge className="bg-amber-100 text-amber-800" label="Waiting" />
                 </div>
 
-                <StatusBadge
-                  className={orderStatusColorMap[order.status]}
-                  label={readableStatus(order.status)}
-                />
-              </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <ul className="space-y-2">
+                    {order.items.map((item, index) => {
+                      const image = menuImageById[item.menuItemId];
+                      return (
+                        <li
+                          key={`${order.id}_${item.menuItemId}_${index}`}
+                          className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="relative h-10 w-10 overflow-hidden rounded-md bg-slate-200">
+                              {image ? (
+                                <Image alt={item.name} fill className="object-cover" src={image} />
+                              ) : null}
+                            </div>
+                            <span className="text-base font-semibold text-slate-900">{item.name}</span>
+                          </div>
+                          <span className="rounded-md bg-slate-900 px-2 py-1 text-sm font-bold text-white">x{item.quantity}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
 
-              <div className="mb-3 flex flex-wrap items-center gap-3 text-sm font-semibold">
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">
-                  Placed: {formatDateTime(order.createdAt)}
-                </span>
-                {chefSettings.showElapsedTimer ? (
-                  <span
-                    className={`rounded-full px-3 py-1 ${
-                      now - new Date(order.createdAt).getTime() >
-                      chefSettings.cookingTimeWarningMins * 60 * 1000
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-emerald-100 text-emerald-800"
-                    }`}
-                  >
-                    Elapsed: {Math.floor((now - new Date(order.createdAt).getTime()) / 60000)}m
-                  </span>
+                {order.waiterNote ? (
+                  <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <strong>Note:</strong> {order.waiterNote}
+                  </p>
                 ) : null}
-              </div>
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-600">Order Items</p>
-                <ul className="space-y-2 text-base text-slate-800">
-                  {order.items.map((item, i) => (
-                    <li
-                      key={`${item.menuItemId}_${i}`}
-                      className="flex items-center justify-between"
-                    >
-                      <span className="font-semibold">{item.name}</span>
-                      <span className="rounded bg-slate-900 px-2 py-0.5 text-sm font-bold text-white">x{item.quantity}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {order.waiterNote && (
-                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  <strong>Note:</strong> {order.waiterNote}
-                </p>
-              )}
-
-              <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-5">
                 <button
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold transition hover:bg-slate-100"
+                  className="mt-4 w-full rounded-xl bg-amber-500 px-4 py-3 text-base font-bold text-white transition hover:bg-amber-600"
                   onClick={() => updateOrderStatus(order.id, "in_progress")}
+                  type="button"
                 >
                   Accept
                 </button>
+              </motion.article>
+            ))}
+          </AnimatePresence>
+        </div>
 
-                <button
-                  className="rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
-                  onClick={() => updateOrderStatus(order.id, "in_progress")}
-                >
-                  In Progress
-                </button>
+        {waitingOrders.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-slate-500">
+            No waiting orders.
+          </div>
+        ) : null}
+      </section>
 
-                <button
-                  className="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
-                  onClick={() => updateOrderStatus(order.id, "ready")}
-                >
-                  Ready
-                </button>
+      <section className="space-y-4">
+        <header className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+          <h3 className="text-2xl font-bold text-emerald-900">Cooking Orders</h3>
+          <p className="text-sm text-emerald-800">Accepted / In progress</p>
+        </header>
 
-                <button
-                  className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-                  onClick={() => updateOrderStatus(order.id, "completed")}
-                >
-                  Complete
-                </button>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <AnimatePresence>
+            {cookingOrders.map((order) => (
+              <motion.article
+                key={order.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18 }}
+                className={`rounded-2xl border p-5 shadow-sm ${
+                  now - new Date(order.createdAt).getTime() >
+                  chefSettings.cookingTimeWarningMins * 60 * 1000
+                    ? "border-amber-400 bg-amber-50"
+                    : "border-emerald-300 bg-white"
+                }`}
+              >
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-3xl font-black text-slate-900">Table {order.tableNumber}</h4>
+                    <p className="text-sm text-slate-600">Received {humanTime(order.createdAt)}</p>
+                    <p className="text-xs text-slate-500">{formatDateTime(order.createdAt)}</p>
+                  </div>
+                  <StatusBadge
+                    className={order.status === "ready" ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"}
+                    label={order.status === "ready" ? "Ready" : "Cooking"}
+                  />
+                </div>
 
-                <button
-                  className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:bg-rose-300"
-                  disabled={!rejectReason[order.id]?.trim()}
-                  onClick={() =>
-                    updateOrderStatus(order.id, "rejected", rejectReason[order.id] || undefined)
-                  }
-                >
-                  Reject
-                </button>
-              </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <ul className="space-y-2">
+                    {order.items.map((item, index) => {
+                      const image = menuImageById[item.menuItemId];
+                      return (
+                        <li
+                          key={`${order.id}_${item.menuItemId}_${index}`}
+                          className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="relative h-10 w-10 overflow-hidden rounded-md bg-slate-200">
+                              {image ? (
+                                <Image alt={item.name} fill className="object-cover" src={image} />
+                              ) : null}
+                            </div>
+                            <span className="text-base font-semibold text-slate-900">{item.name}</span>
+                          </div>
+                          <span className="rounded-md bg-slate-900 px-2 py-1 text-sm font-bold text-white">x{item.quantity}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
 
-              <div className="mt-3">
-                <input
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-slate-300 transition focus:ring-2"
-                  placeholder="Optional reject reason..."
-                  value={rejectReason[order.id] || ""}
-                  onChange={(e) =>
-                    setRejectReason((s) => ({
-                      ...s,
-                      [order.id]: e.target.value,
-                    }))
-                  }
-                />
-                {!rejectReason[order.id]?.trim() ? (
-                  <p className="mt-1 text-xs font-semibold text-rose-600">
-                    Reject reason is required before rejecting this order.
+                {order.waiterNote ? (
+                  <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <strong>Note:</strong> {order.waiterNote}
                   </p>
                 ) : null}
-              </div>
-            </motion.section>
-          ))}
-        </AnimatePresence>
-      </div>
 
-      {liveOrders.length === 0 && (
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800 transition hover:bg-blue-100"
+                    onClick={() => updateOrderStatus(order.id, "ready")}
+                    type="button"
+                  >
+                    Mark Ready
+                  </button>
+                  <button
+                    className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+                    onClick={() => updateOrderStatus(order.id, "completed")}
+                    type="button"
+                  >
+                    Complete
+                  </button>
+                </div>
+
+                <div className="mt-3">
+                  <input
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-slate-300 transition focus:ring-2"
+                    onChange={(event) =>
+                      setRejectReason((state) => ({
+                        ...state,
+                        [order.id]: event.target.value,
+                      }))
+                    }
+                    placeholder="Reject reason (required if rejecting)"
+                    value={rejectReason[order.id] || ""}
+                  />
+                  <button
+                    className="mt-2 w-full rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:bg-rose-300"
+                    disabled={!rejectReason[order.id]?.trim()}
+                    onClick={() =>
+                      updateOrderStatus(order.id, "rejected", rejectReason[order.id] || undefined)
+                    }
+                    type="button"
+                  >
+                    Reject Order
+                  </button>
+                </div>
+              </motion.article>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {cookingOrders.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-slate-500">
+            No cooking orders.
+          </div>
+        ) : null}
+      </section>
+
+      {liveOrders.length === 0 ? (
         <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-20 text-center text-slate-500">
           No active orders. Kitchen is clear.
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

@@ -26,6 +26,7 @@ export default function WaiterTableDetailPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [guestCount, setGuestCount] = useState(1);
   const [paymentSelection, setPaymentSelection] = useState<Record<string, number>>({});
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   const {
     currentUserId,
@@ -129,7 +130,8 @@ export default function WaiterTableDetailPage() {
   };
 
   const submitOrder = () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || isSubmittingOrder) return;
+    setIsSubmittingOrder(true);
 
     const orderItems = cart.map((item) => ({
       menuItemId: item.menuItemId,
@@ -146,6 +148,7 @@ export default function WaiterTableDetailPage() {
 
     setCart([]);
     setOrderNote("");
+    window.setTimeout(() => setIsSubmittingOrder(false), 350);
   };
 
   const orderItemsSummary = useMemo(() => (activeOrder ? activeOrder.items : []), [activeOrder]);
@@ -432,10 +435,14 @@ export default function WaiterTableDetailPage() {
               <button
                 type="button"
                 onClick={submitOrder}
-                disabled={cart.length === 0}
+                disabled={cart.length === 0 || isSubmittingOrder}
                 className="w-full rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200"
               >
-                {activeOrder ? "Add to order" : "Send new order"}
+                {isSubmittingOrder
+                  ? "Sending..."
+                  : activeOrder
+                    ? "Add to order"
+                    : "Send new order"}
               </button>
             </div>
           </div>
