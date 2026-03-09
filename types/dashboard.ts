@@ -12,7 +12,9 @@ export type TableStatus =
   | "ordering"
   | "in_progress"
   | "ready_to_serve"
-  | "finished";
+  | "finished"
+  | "occupied"
+  | "cleaning";
 
 export type MenuCategory = "starter" | "main dish" | "dessert" | "drink";
 
