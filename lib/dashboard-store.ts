@@ -649,6 +649,16 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   createOrder: (tableNumber, waiterId, items, waiterNote) =>
     set((state) => {
+      const existingActiveOrder = state.orders.find(
+        (order) =>
+          order.tableNumber === tableNumber &&
+          ["pending", "in_progress", "ready"].includes(order.status),
+      );
+
+      if (existingActiveOrder) {
+        return state;
+      }
+
       const order: Order = {
         id: makeId("order"),
         ticketNumber: state.ticketCounter,

@@ -7,7 +7,6 @@ import { useDashboardStore } from "@/lib/dashboard-store";
 export default function ChefSettingsPage() {
   const chefSettings = useDashboardStore((state) => state.chefSettings);
   const updateChefSettings = useDashboardStore((state) => state.updateChefSettings);
-  const resetTicketCounter = useDashboardStore((state) => state.resetTicketCounter);
   const currentUserId = useDashboardStore((state) => state.currentUserId);
   const staff = useDashboardStore((state) => state.staff);
   const updateStaff = useDashboardStore((state) => state.updateStaff);
@@ -69,13 +68,6 @@ export default function ChefSettingsPage() {
               value={chefSettings.cookingTimeWarningMins}
             />
           </div>
-          <button
-            className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700"
-            onClick={resetTicketCounter}
-            type="button"
-          >
-            Reset Ticket Counter
-          </button>
         </article>
 
         <article className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
