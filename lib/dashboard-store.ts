@@ -16,6 +16,11 @@ import {
   UserRole,
 } from "@/types/dashboard";
 
+type AddTablePayload = Pick<
+  TableModel,
+  "section" | "capacity" | "reserved" | "reservationTime" | "reservedFor"
+>;
+
 type DashboardState = {
   currentRole: UserRole;
   currentUserId: string;
@@ -29,7 +34,7 @@ type DashboardState = {
   chefSettings: ChefSettings;
   setCurrentRole: (role: UserRole) => void;
   setCurrentUserId: (userId: string) => void;
-  addStaff: (payload: Omit<StaffMember, "id">) => void;
+  addStaff: (payload: Omit<StaffMember, "id">) => string;
   updateStaff: (id: string, payload: Partial<Omit<StaffMember, "id">>) => void;
   toggleStaffActive: (id: string) => void;
   addMenuItem: (payload: Omit<MenuItem, "id">) => void;
@@ -39,6 +44,9 @@ type DashboardState = {
   setMenuAvailability: (id: string, availability: MenuAvailability) => void;
   bulkSetMenuAvailability: (ids: string[], availability: MenuAvailability) => void;
   setMenuLowStock: (id: string, lowStock: boolean) => void;
+  addTable: (payload: AddTablePayload) => TableModel;
+  assignTablesToWaiter: (waiterId: string, tableIds: string[]) => void;
+  assignSingleTable: (tableId: string, waiterId: string | null) => void;
   createOrder: (
     tableNumber: number,
     waiterId: string,
@@ -577,10 +585,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   setCurrentUserId: (userId) => set({ currentUserId: userId }),
 
-  addStaff: (payload) =>
+  addStaff: (payload) => {
+    const id = makeId("staff");
     set((state) => ({
-      staff: [...state.staff, { id: makeId("staff"), ...payload }],
-    })),
+      staff: [...state.staff, { id, ...payload }],
+    }));
+    return id;
+  },
 
   updateStaff: (id, payload) =>
     set((state) => ({
@@ -657,6 +668,52 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     set((state) => ({
       menu: state.menu.map((item) =>
         item.id === id ? { ...item, lowStock } : item,
+      ),
+    })),
+
+  addTable: (payload) => {
+    let createdTable: TableModel | null = null;
+    set((state) => {
+      const highestNumber = state.tables.reduce(
+        (max, table) => Math.max(max, table.tableNumber),
+        0,
+      );
+      const reserved = payload.reserved ?? false;
+      const table: TableModel = {
+        id: makeId("table"),
+        tableNumber: highestNumber + 1,
+        status: "available",
+        reserved,
+        section: payload.section,
+        capacity: payload.capacity,
+        currentGuests: 0,
+        waiterId: null,
+        reservationTime: reserved ? payload.reservationTime : undefined,
+        reservedFor: reserved ? payload.reservedFor : undefined,
+      };
+      createdTable = table;
+      return { tables: [...state.tables, table] };
+    });
+    return createdTable!;
+  },
+
+  assignTablesToWaiter: (waiterId, tableIds) =>
+    set((state) => ({
+      tables: state.tables.map((table) => {
+        if (tableIds.includes(table.id)) {
+          return { ...table, waiterId };
+        }
+        if (table.waiterId === waiterId) {
+          return { ...table, waiterId: null };
+        }
+        return table;
+      }),
+    })),
+
+  assignSingleTable: (tableId, waiterId) =>
+    set((state) => ({
+      tables: state.tables.map((table) =>
+        table.id === tableId ? { ...table, waiterId } : table,
       ),
     })),
 
@@ -888,6 +945,8 @@ export const tableStatusColorMap: Record<TableStatus, string> = {
   in_progress: "bg-blue-100 text-blue-700",
   ready_to_serve: "bg-teal-100 text-teal-700",
   finished: "bg-slate-100 text-slate-700",
+  occupied: "bg-amber-100 text-amber-700",
+  cleaning: "bg-slate-100 text-slate-500",
 };
 
 export const readableStatus = (value: string) => value.replace(/_/g, " ");
