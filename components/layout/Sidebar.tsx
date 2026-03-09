@@ -50,17 +50,19 @@ const roleLinks: Record<UserRole, LinkItem[]> = {
     { href: "/waiter/settings", label: "Settings", Icon: Settings },
   ],
   chef: [
-    { href: "/chef", label: "Live Orders", Icon: Activity },
+    { href: "/chef/liveKDS", label: "Live KDS", Icon: Activity },
+    { href: "/chef/accepted", label: "Accepted Orders", Icon: ClipboardList },
     {
       href: "/chef/menu-availability",
       label: "Menu Availability",
-      Icon: ClipboardList,
+      Icon: ListChecks,
     },
     { href: "/chef/history", label: "Preparation History", Icon: History },
     { href: "/chef/settings", label: "Settings", Icon: Settings },
   ],
   cashier: [
     { href: "/cashier", label: "Payments", Icon: Wallet },
+    { href: "/cashier/finalized", label: "Finalized", Icon: CreditCard },
     { href: "/cashier/settings", label: "Settings", Icon: Settings },
   ],
 };

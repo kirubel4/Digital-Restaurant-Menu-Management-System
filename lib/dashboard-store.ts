@@ -55,7 +55,8 @@ type DashboardState = {
     status: OrderStatus,
     rejectNote?: string,
   ) => void;
-  finalizePayment: (orderId: string, tip: number) => void;
+  finalizePayment: (orderId: string) => void;
+  addTipToFinalizedPayment: (orderId: string, tip: number) => void;
   requestPayment: (
     orderId: string,
     options?: { items?: OrderItem[]; label?: string },
@@ -756,7 +757,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       };
     }),
 
-  finalizePayment: (orderId, tip) =>
+  finalizePayment: (orderId) =>
     set((state) => {
       const order = state.orders.find((item) => item.id === orderId);
       return {
@@ -764,8 +765,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           payment.orderId === orderId
             ? {
                 ...payment,
-                tip,
-                total: Number((payment.subtotal + tip).toFixed(2)),
                 finalized: true,
                 paidAt: nowIso(),
               }
@@ -775,6 +774,21 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           order && table.tableNumber === order.tableNumber
             ? { ...table, status: "available" }
             : table,
+        ),
+      };
+    }),
+  addTipToFinalizedPayment: (orderId, tip) =>
+    set((state) => {
+      const normalizedTip = Math.max(0, Number(tip) || 0);
+      return {
+        payments: state.payments.map((payment) =>
+          payment.orderId === orderId && payment.finalized
+            ? {
+                ...payment,
+                tip: normalizedTip,
+                total: Number((payment.subtotal + normalizedTip).toFixed(2)),
+              }
+            : payment,
         ),
       };
     }),
