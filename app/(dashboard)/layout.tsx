@@ -1,12 +1,20 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import { useDashboardStore } from "@/lib/dashboard-store";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const chefSettings = useDashboardStore((state) => state.chefSettings);
   const isDarkMode = chefSettings.displayMode === "dark";
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, setMobileOpen]);
 
   return (
     <div
@@ -14,9 +22,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         isDarkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
       } ${chefSettings.largeTextMode ? "text-lg" : ""}`}
     >
-      <Topbar />
+      <Topbar onOpenMobileMenu={() => setMobileOpen(true)} />
       <div className="flex min-h-[calc(100vh-56px)]">
-        <Sidebar />
+        <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">{children}</main>
       </div>
     </div>
