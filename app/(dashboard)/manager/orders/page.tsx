@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -26,8 +26,11 @@ export default function ManagerOrdersPage() {
   const [timeframe, setTimeframe] = useState(7);
   const [insight, setInsight] = useState<string | null>(null);
 
-  const orderTotal = (order: typeof orders[number]) =>
-    order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const orderTotal = useCallback(
+    (order: (typeof orders)[number]) =>
+      order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
+    [],
+  );
 
   const timeframeOrders = useMemo(
     () =>
@@ -46,7 +49,7 @@ export default function ManagerOrdersPage() {
       buckets[bucket] = (buckets[bucket] || 0) + orderTotal(order);
     });
     return Object.entries(buckets).map(([label, revenue]) => ({ label, revenue }));
-  }, [timeframeOrders]);
+  }, [timeframeOrders, orderTotal]);
 
   const waiterRevenue = useMemo(() => {
     const map: Record<string, number> = {};
@@ -57,7 +60,7 @@ export default function ManagerOrdersPage() {
     return Object.entries(map)
       .map(([name, revenue]) => ({ name, revenue }))
       .sort((a, b) => b.revenue - a.revenue);
-  }, [timeframeOrders, staff]);
+  }, [timeframeOrders, staff, orderTotal]);
 
   const totalRevenue = timeframeOrders.reduce((sum, order) => sum + orderTotal(order), 0);
 

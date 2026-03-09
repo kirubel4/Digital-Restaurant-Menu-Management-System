@@ -37,7 +37,7 @@ export default function CashierPaymentsPage() {
               </div>
               <button
                 className="mt-3 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-                onClick={() => finalizePayment(payment.orderId)}
+                onClick={() => finalizePayment(payment.id)}
                 type="button"
               >
                 Finalize Payment

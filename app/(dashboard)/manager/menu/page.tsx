@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { currency, useDashboardStore } from "@/lib/dashboard-store";
 import type { MenuAvailability } from "@/types/dashboard";
@@ -198,7 +199,9 @@ export default function ManagerMenuPage() {
                   onChange={handleImageUpload}
                 />
                 {imagePreview && (
-                  <img src={imagePreview} alt="Preview" className="h-24 w-full rounded-2xl object-cover" />
+                  <div className="relative h-24 w-full overflow-hidden rounded-2xl">
+                    <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                  </div>
                 )}
                 <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Availability</label>
                 <select
@@ -243,7 +246,11 @@ export default function ManagerMenuPage() {
         {filteredMenu.map((item) => (
           <article key={item.id} className="flex rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100">
-              {item.image ? <img src={item.image} alt={item.name} className="h-full w-full object-cover" /> : null}
+              {item.image ? (
+                <div className="relative h-full w-full">
+                  <Image src={item.image} alt={item.name} fill className="object-cover" />
+                </div>
+              ) : null}
             </div>
             <div className="ml-4 flex flex-1 flex-col justify-between">
               <div>
