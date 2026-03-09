@@ -153,8 +153,8 @@ export default function ChefLiveOrdersPage() {
               >
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div>
-                    <h4 className="text-3xl font-black text-slate-900">Table {order.tableNumber}</h4>
-                    <p className="text-sm text-slate-600">Received {humanTime(order.createdAt)}</p>
+                    <h4 className="text-xl font-black text-slate-600">Table {order.tableNumber}</h4>
+                    <p className="text-2xl text-slate-900 font-black">Received {humanTime(order.createdAt)}</p>
                     <p className="text-xs text-slate-500">{formatDateTime(order.createdAt)}</p>
                   </div>
                   <StatusBadge
