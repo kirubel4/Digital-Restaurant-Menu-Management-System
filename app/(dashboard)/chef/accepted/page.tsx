@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import StatusBadge from "@/components/shared/StatusBadge";
 import { formatDateTime, humanTime, useDashboardStore } from "@/lib/dashboard-store";
 
-export default function ChefLiveKdsPage() {
+export default function ChefAcceptedOrdersPage() {
   const orders = useDashboardStore((state) => state.orders);
   const menu = useDashboardStore((state) => state.menu);
   const updateOrderStatus = useDashboardStore((state) => state.updateOrderStatus);
+  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
 
   const menuImageById = useMemo(
     () =>
@@ -20,31 +21,31 @@ export default function ChefLiveKdsPage() {
     [menu],
   );
 
-  const waitingOrders = useMemo(
+  const acceptedOrders = useMemo(
     () =>
       orders
-        .filter((order) => order.status === "pending")
+        .filter((order) => ["in_progress", "ready"].includes(order.status))
         .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt)),
     [orders],
   );
 
   return (
     <section className="mx-auto w-full max-w-7xl space-y-6">
-      <header className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-        <h2 className="text-3xl font-black tracking-tight text-amber-900">Live KDS - Waiting Orders</h2>
-        <p className="text-sm text-amber-800">Showing only ordered items that are ready for accept.</p>
+      <header className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+        <h2 className="text-3xl font-black tracking-tight text-emerald-900">Accepted / Cooking Orders</h2>
+        <p className="text-sm text-emerald-800">Orders that are already accepted by the kitchen.</p>
       </header>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <AnimatePresence>
-          {waitingOrders.map((order) => (
+          {acceptedOrders.map((order) => (
             <motion.article
               key={order.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.18 }}
-              className="rounded-2xl border border-amber-300 bg-white p-5 shadow-sm"
+              className="rounded-2xl border border-emerald-300 bg-white p-5 shadow-sm"
             >
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
@@ -52,7 +53,10 @@ export default function ChefLiveKdsPage() {
                   <p className="text-sm text-slate-600">Received {humanTime(order.createdAt)}</p>
                   <p className="text-xs text-slate-500">{formatDateTime(order.createdAt)}</p>
                 </div>
-                <StatusBadge className="bg-amber-100 text-amber-800" label="Waiting" />
+                <StatusBadge
+                  className={order.status === "ready" ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"}
+                  label={order.status === "ready" ? "Ready" : "Cooking"}
+                />
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -83,21 +87,52 @@ export default function ChefLiveKdsPage() {
                 </p>
               ) : null}
 
-              <button
-                className="mt-4 w-full rounded-xl bg-amber-500 px-4 py-3 text-base font-bold text-white transition hover:bg-amber-600"
-                onClick={() => updateOrderStatus(order.id, "in_progress")}
-                type="button"
-              >
-                Accept Order
-              </button>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800 transition hover:bg-blue-100"
+                  onClick={() => updateOrderStatus(order.id, "ready")}
+                  type="button"
+                >
+                  Mark Ready
+                </button>
+                <button
+                  className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+                  onClick={() => updateOrderStatus(order.id, "completed")}
+                  type="button"
+                >
+                  Complete
+                </button>
+              </div>
+
+              <div className="mt-3">
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-slate-300 transition focus:ring-2"
+                  onChange={(event) =>
+                    setRejectReason((state) => ({
+                      ...state,
+                      [order.id]: event.target.value,
+                    }))
+                  }
+                  placeholder="Reject reason (required if rejecting)"
+                  value={rejectReason[order.id] || ""}
+                />
+                <button
+                  className="mt-2 w-full rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:bg-rose-300"
+                  disabled={!rejectReason[order.id]?.trim()}
+                  onClick={() => updateOrderStatus(order.id, "rejected", rejectReason[order.id] || undefined)}
+                  type="button"
+                >
+                  Reject Order
+                </button>
+              </div>
             </motion.article>
           ))}
         </AnimatePresence>
       </div>
 
-      {waitingOrders.length === 0 ? (
+      {acceptedOrders.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-slate-500">
-          No waiting orders.
+          No accepted/cooking orders.
         </div>
       ) : null}
     </section>
