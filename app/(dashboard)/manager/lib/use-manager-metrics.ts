@@ -1,13 +1,20 @@
 "use client";
 
 import { useMemo } from "react";
-import { useDashboardStore } from "@/lib/dashboard-store";
-import type { Order, StaffMember } from "@/types/dashboard";
+import { humanTime, useDashboardStore } from "@/lib/dashboard-store";
+import type { AppNotification, Order, StaffMember } from "@/types/dashboard";
 
 const DAY_MILLIS = 24 * 60 * 60 * 1000;
 
 const orderRevenue = (order: Order) =>
   order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+
+export type ManagerAlert = {
+  id: string;
+  source: string;
+  message: string;
+  time: string;
+};
 
 export function useManagerMetrics() {
   const orders = useDashboardStore((state) => state.orders);
@@ -69,8 +76,15 @@ export function useManagerMetrics() {
       .slice(0, 3);
   }, [orders]);
 
-  const alerts = useMemo(() => {
-    const chefAlerts = orders
+  const alerts = useMemo<ManagerAlert[]>(() => {
+    const systemAlerts = notifications.map<ManagerAlert>((notification) => ({
+      id: notification.id,
+      source: "System",
+      message: notification.message,
+      time: humanTime(notification.createdAt),
+    }));
+
+    const chefAlerts: ManagerAlert[] = orders
       .filter((order) => order.status === "ready")
       .map((order) => ({
         id: `chef-${order.id}`,
@@ -79,7 +93,7 @@ export function useManagerMetrics() {
         time: new Date(order.updatedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
       }));
 
-    const waiterAlerts = orders
+    const waiterAlerts: ManagerAlert[] = orders
       .filter((order) => order.status === "pending")
       .map((order) => ({
         id: `waiter-${order.id}`,
@@ -88,7 +102,7 @@ export function useManagerMetrics() {
         time: new Date(order.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
       }));
 
-    const paymentAlerts = payments.map((payment) => ({
+    const paymentAlerts: ManagerAlert[] = payments.map((payment) => ({
       id: payment.id,
       source: "Cashier",
       message: `Payment received for Order ${payment.orderId} (${payment.total})`,
@@ -97,7 +111,7 @@ export function useManagerMetrics() {
         : "Pending",
     }));
 
-    return [...notifications, ...chefAlerts, ...waiterAlerts, ...paymentAlerts].slice(0, 5);
+    return [...systemAlerts, ...chefAlerts, ...waiterAlerts, ...paymentAlerts].slice(0, 5);
   }, [notifications, orders, payments]);
 
   const staffRevenue = useMemo(() => {
