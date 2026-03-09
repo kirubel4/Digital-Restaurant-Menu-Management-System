@@ -35,11 +35,9 @@ export default function Topbar({ onOpenMobileMenu }: TopbarProps) {
         </button>
         <div>
           <h1 className={`text-lg font-bold ${isDarkMode ? "text-slate-50" : "text-slate-900"}`}>
-            {roleTitle(role)} Dashboard
+            {roleTitle(role)}
           </h1>
-          <p className={`text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-            Digital Restaurant Menu & Management System
-          </p>
+          
         </div>
       </div>
       <div className="flex items-center gap-3">
